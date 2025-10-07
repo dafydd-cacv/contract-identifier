@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consumer Contract Identifier</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Open Sans Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to ensure Open Sans is the default and enforce square corners */
+        body {
+            font-family: 'Open Sans', sans-serif;
+            background-color: #EAEDF5; /* tint-5 for light background */
+        }
+        .square-corner {
+            border-radius: 0 !important;
+        }
+        /* Override Tailwind's default rounded corners for primary interactives */
+        .btn {
+            border-radius: 0;
+            transition: background-color 0.15s, color 0.15s;
+        }
+        /* Specific hover effect for option buttons: 50% transparent highlight color */
+        .option-btn:hover:not(:disabled) {
+            background-color: rgba(252, 187, 105, 0.5); /* 50% opacity of #FCBB69 */
+            opacity: 1; /* Override default button opacity change on hover */
+        }
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        /* Ensure symbols display clearly and align (Scaled down) */
+        .option-icon {
+            font-size: 1.25rem; /* Reduced size */
+            margin-right: 0.5rem; /* Reduced spacing */
+            line-height: 1; /* Ensure vertical alignment */
+        }
+        /* Style for the current step in the journey */
+        .current-step {
+            box-shadow: 0 0 0 2px #FCBB69;
+            background-color: #C9D1E5 !important; /* tint-4 */
+            font-weight: 700;
+        }
+        /* Style for completed steps */
+        .completed-step {
+            background-color: #EAEDF5; /* tint-5 */
+            cursor: pointer; /* Indicate clickability */
+            transition: background-color 0.1s;
+        }
+        .completed-step:hover {
+            background-color: #C9D1E5; /* tint-4 hover for completed step */
+        }
+
+        /* Highlight Background (50% opacity of #FCBB69) */
+        .highlight-transparent {
+            background-color: rgba(252, 187, 105, 0.5); 
+            color: #004B88; /* Primary dark for strong contrast */
+            /* Add this to allow natural line wrapping */
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+        
+        /* ------------------------------------------------ */
+        /* Custom Styles for Repulsion Icon */
+        /* ------------------------------------------------ */
+
+        .magnify-icon {
+            font-size: 3.5rem;
+            display: inline-block;
+            color: #FCBB69;
+            /* Add transition for smooth repulsion movement */
+            transition: transform 0.1s ease-out; 
+            /* Ensure the icon has a static cursor when the repulsion area is active */
+            cursor: default !important;
+        }
+        
+        /* Custom cursor applied to the header element via JavaScript */
+    </style>
+    <script>
+        // Tailwind Configuration with custom colors and font
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Open Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary-dark': '#004B88',
+                        'tint-1': '#2E639A',
+                        'tint-2': '#6481B2',
+                        'tint-3': '#96A7CB',
+                        'tint-4': '#C9D1E5',
+                        'tint-5': '#EAEDF5',
+                        'highlight': '#FCBB69',
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- Header Section (Scaled down to max-w-5xl, smaller padding/margin/text) -->
+    <header id="header-bar" class="w-full max-w-5xl mx-auto bg-primary-dark p-6 md:p-8 my-8 shadow-2xl square-corner">
+        <div class="flex justify-between items-center">
+            <!-- Left Aligned Text -->
+            <div class="text-left">
+                <h1 class="text-3xl md:text-4xl font-bold text-white leading-tight">
+                    Contract type identification
+                </h1>
+                <p class="mt-2 text-base text-tint-4">Use this tool to identify what sort of contract has been formed: on-premises, off-premises, or distance</p>
+            </div>
+            <!-- Right Aligned Animated Icon -->
+            <div class="hidden sm:block">
+                <span id="contract-icon" class="magnify-icon">📝</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="p-4 flex items-start justify-center">
+        <!-- Main Application Container (Scaled down to max-w-5xl) -->
+        <div class="w-full max-w-5xl bg-white border-4 border-primary-dark shadow-2xl square-corner flex flex-col lg:flex-row">
+
+            <!-- Journey/Sidebar Area (Padding and text scaled) -->
+            <div class="lg:w-1/3 p-6 bg-tint-5 border-b-4 lg:border-r-4 lg:border-b-0 border-primary-dark">
+                <h2 class="text-xl font-bold text-primary-dark mb-4 border-b border-tint-3 pb-2">
+                    Question journey
+                </h2>
+                <div id="journey-visualizer" class="space-y-3">
+                    <!-- Journey steps will be inserted here -->
+                </div>
+            </div>
+
+            <!-- Quiz Content Area (Padding scaled) -->
+            <div class="lg:w-2/3 p-6 md:p-10">
+
+                <!-- Main Content Area -->
+                <div id="quiz-container">
+                    <!-- Dynamic Question Display (Text and spacing scaled) -->
+                    <div id="question-display" class="space-y-6">
+                        <h2 id="current-question-title" class="text-xl md:text-2xl font-semibold text-primary-dark"></h2>
+                        <div id="options-container" class="space-y-3 mb-6">
+                            <!-- Options will be dynamically inserted here -->
+                        </div>
+
+                        <!-- Navigation Buttons (Padding and text scaled) -->
+                        <div id="navigation-controls" class="flex justify-between pt-4 border-t border-tint-4">
+                            <button id="previous-button" onclick="previousStep()" disabled
+                                class="btn p-3 bg-tint-3 text-primary-dark text-base font-bold transition-colors duration-200 disabled:opacity-50 hover:bg-tint-2 hover:text-white">
+                                <span class="text-lg mr-2">←</span> Previous
+                            </button>
+                            <button id="reset-button-question" onclick="resetTool()"
+                                class="btn p-3 bg-tint-3 text-primary-dark text-base font-bold transition-colors duration-200 hover:bg-tint-2 hover:text-white">
+                                <span class="text-lg mr-2">↻</span> Reset
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <!-- Result Display Area (Text and spacing scaled) -->
+                    <div id="result-display" class="hidden space-y-6 p-6 bg-tint-4 border-l-4 border-highlight square-corner">
+                        <h2 id="result-type" class="text-2xl md:text-3xl font-bold text-primary-dark"></h2>
+                        <p id="result-explanation" class="text-lg text-primary-dark"></p>
+                        <!-- Note: resultExplanation class changed from text-tint-1 to text-primary-dark -->
+
+                        <button onclick="resetTool()"
+                            class="btn p-3 bg-highlight hover:bg-tint-1 text-primary-dark hover:text-white text-base font-bold transition-colors duration-200">
+                            Start a new check
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer Attribution (Scaled down to max-w-5xl, smaller text/margin, logo h-12) -->
+    <footer class="w-full max-w-5xl mx-auto p-4 text-tint-1 mt-4 flex justify-between items-center text-xs">
+        <!-- Logo (Left-aligned, size h-12) -->
+        <img src="https://cacv.org.uk/wp-content/uploads/cacv-logo.svg" alt="Citizens Advice Cardiff & Vale Logo" class="h-12">
+        
+        <!-- Text (Right-aligned) -->
+        <p class="text-right">This tool was created by <a href="mailto:dafydd.young@consumer.advice.org.uk" class="text-primary-dark font-semibold hover:text-tint-1">Dafydd</a> at Citizens Advice Cardiff & Vale. Use at your own risk, and if in doubt check <a href="https://drive.google.com/file/d/0B-OrLWOGSqU9d3FXZkY2X2VFYlE/view?usp=sharing&resourcekey=0-xQCQr4eM3HYHdG9MFIWmIA" target="_blank" class="text-primary-dark font-semibold hover:text-tint-1">figure D1 in your manuals</a>.</p>
+    </footer>
+
+    <script>
+        const questionDisplay = document.getElementById('question-display');
+        const optionsContainer = document.getElementById('options-container');
+        const currentQuestionTitle = document.getElementById('current-question-title');
+        const resultDisplay = document.getElementById('result-display');
+        const resultType = document.getElementById('result-type');
+        const resultExplanation = document.getElementById('result-explanation');
+        const previousButton = document.getElementById('previous-button');
+        const journeyVisualizer = document.getElementById('journey-visualizer');
+        const contractIcon = document.getElementById('contract-icon'); 
+        const headerBar = document.getElementById('header-bar');
+        
+        const startState = 'Q1_T_C';
+
+        let currentState = startState;
+        let navigationHistory = []; 
+
+        // --- Definitions based on CCR 2013 Summary (Page 9) ---
+        const contractDefinitions = {
+            'on-premises': {
+                title: 'This is an on-premises contract',
+                explanation: 'An on-premises contract is one that is neither an off-premises contract nor a distance one. This typically includes a purchase made in a store, at a market, or following a quote left by a trader which the consumer accepts in their own time.<br><br>[There is no statutory right to cancel an on-premises contract] under the Consumer Contract Regulations, so you should check for any express cancellation terms in the terms and conditions.',
+                color: 'text-primary-dark' 
+            },
+            'off-premises': {
+                title: 'This is an off-premises contract',
+                explanation: 'An off-premises contract is where the trader and consumer are together for the negotiation but not on the trader\'s usual business premises (e.g., in the consumer\'s home or workplace). The conclusion of the contract may occur there or immediately afterwards.<br><br>Off-premises contracts usually have [stautory cancellation rights under the Consumer Contract Regulations, and also have defined requirements for PCI].',
+                color: 'text-primary-dark' 
+            },
+            'distance': {
+                title: 'This is a distance contract',
+                explanation: 'A distance contract is where the parties are not face-to-face, the trader has an organised distance sales scheme, and and there is exclusive use of distance communication (online, phone, mail) up to and including the time the contract is concluded.<br><br>Distance contracts usually have [stautory cancellation rights under the Consumer Contract Regulations, and also have defined requirements for PCI].',
+                color: 'text-primary-dark' 
+            }
+        };
+
+        // --- Flowchart Logic (Figure D1) from Page 7 ---
+        const QUIZ_FLOW = {
+            'Q1_T_C': { 
+                text: 'Were the trader and consumer [face-to-face] at any time?',
+                options: [
+                    { label: 'Yes', next: 'Q2_F2F_Location' },
+                    { label: 'No', next: 'Q3_Distance_Scheme' }
+                ]
+            },
+            'Q2_F2F_Location': {
+                text: 'Did this face-to-face interaction occur at a location that is a [usual place of business] for the trader?',
+                options: [
+                    { label: 'Yes', next: 'Q2a_Concluded_Together' },
+                    { label: 'No', next: 'Q2b_Excursion' }
+                ]
+            },
+            'Q2a_Concluded_Together': {
+                text: 'Was the contract [concluded while they were still together]?',
+                options: [
+                    { label: 'Yes', next: 'ON-PREMISES CONTRACT' }, 
+                    { label: 'No', next: 'ON-PREMISES CONTRACT' } 
+                ]
+            },
+            'Q2b_Excursion': {
+                text: 'Was the interaction [an excursion organised by the trader] to promote or sell?',
+                options: [
+                    { label: 'Yes', next: 'OFF-PREMISES CONTRACT' }, 
+                    { label: 'No', next: 'Q2c_Consumer_Offer' }
+                ]
+            },
+            'Q2c_Consumer_Offer': {
+                text: 'Did the consumer [make an offer while they were still together] (e.g., signing an order form)?',
+                options: [
+                    { label: 'Yes', next: 'Q2d_Individually_Addressed' },
+                    { label: 'No', next: 'ON-PREMISES CONTRACT' }
+                ]
+            },
+            'Q2d_Individually_Addressed': {
+                text: 'Was the consumer [personally and individually addressed] by the trader?',
+                options: [
+                    { label: 'Yes', next: 'Q2e_Concluded_Immediately' },
+                    { label: 'No', next: 'ON-PREMISES CONTRACT' }
+                ]
+            },
+            'Q2e_Concluded_Immediately': {
+                text: 'Was [conclusion of the contract immediately afterwards], either on business premises or by distance means?',
+                options: [
+                    { label: 'Yes', next: 'OFF-PREMISES CONTRACT' }, 
+                    { label: 'No', next: 'ON-PREMISES CONTRACT' }
+                ]
+            },
+            'Q3_Distance_Scheme': {
+                text: 'Does the trader have an [organised distance selling scheme] (e.g., dedicated website, catalogue system, or call center)?',
+                options: [
+                    { label: 'Yes', next: 'Q4_Exclusive_Distance' },
+                    { label: 'No', next: 'ON-PREMISES CONTRACT' } 
+                ]
+            },
+            'Q4_Exclusive_Distance': {
+                text: 'Was there [exclusive use of one or more means of distance communication] (phone, internet, mail) up to and including the contract conclusion?',
+                options: [
+                    { label: 'Yes', next: 'DISTANCE CONTRACT' }, 
+                    { label: 'No', next: 'ON-PREMISES CONTRACT' } 
+                ]
+            },
+            'ON-PREMISES CONTRACT': { result: 'on-premises' },
+            'OFF-PREMISES CONTRACT': { result: 'off-premises' },
+            'DISTANCE CONTRACT': { result: 'distance' },
+        };
+
+        function processTextForMarkup(text) {
+            let html = text.replace(/\[(.*?)\]/g, '<span class="highlight-transparent px-1">$1</span>');
+            
+            if (html.length === 0) return '';
+            return html.charAt(0).toUpperCase() + html.slice(1);
+        }
+
+        function goToStep(index) {
+            if (index >= 0 && index < navigationHistory.length) {
+                navigationHistory.splice(index + 1);
+                currentState = navigationHistory[index].questionKey;
+                navigationHistory.pop();
+                renderState();
+            }
+        }
+
+        function updateJourneyVisualizer() {
+            journeyVisualizer.innerHTML = '';
+            
+            navigationHistory.forEach((step, index) => {
+                const question = QUIZ_FLOW[step.questionKey];
+                const stepElement = document.createElement('div');
+                stepElement.className = 'p-3 completed-step border border-tint-4 square-corner text-sm text-tint-1';
+                stepElement.onclick = () => goToStep(index);
+
+                const rawText = processTextForMarkup(question.text);
+                const plainText = rawText.replace(/<[^>]*>?/gm, '');
+                const truncatedText = plainText.split(/[?.!]/)[0].slice(0, 35).trim() + '...';
+
+                stepElement.innerHTML = `
+                    <p class="font-semibold text-primary-dark">${index + 1}. ${truncatedText}</p>
+                    <p class="mt-1">Answered: <strong class="text-primary-dark">${step.selectedOption}</strong></p>
+                `;
+                journeyVisualizer.appendChild(stepElement);
+            });
+
+            if (!QUIZ_FLOW[currentState].result) {
+                const question = QUIZ_FLOW[currentState];
+                const rawText = processTextForMarkup(question.text);
+                const plainText = rawText.replace(/<[^>]*>?/gm, '');
+                const truncatedText = plainText.split(/[?.!]/)[0].slice(0, 35).trim() + '...';
+                
+                const currentStepElement = document.createElement('div');
+                currentStepElement.className = 'p-3 current-step border border-primary-dark square-corner text-sm text-primary-dark';
+                currentStepElement.innerHTML = `<p class="font-bold">${navigationHistory.length + 1}. ${truncatedText}</p>`;
+                journeyVisualizer.appendChild(currentStepElement);
+            } else {
+                const resultKey = QUIZ_FLOW[currentState].result;
+                const result = contractDefinitions[resultKey];
+                const resultElement = document.createElement('div');
+                resultElement.className = 'p-3 border-l-4 border-highlight square-corner text-sm text-primary-dark font-bold bg-tint-4';
+                resultElement.textContent = `Result: ${result.title.charAt(0).toUpperCase() + result.title.slice(1)}`;
+                journeyVisualizer.appendChild(resultElement);
+            }
+        }
+
+        function renderState() {
+            const state = QUIZ_FLOW[currentState];
+
+            if (state.result) {
+                displayResult(state.result);
+                updateJourneyVisualizer();
+                return;
+            }
+
+            currentQuestionTitle.innerHTML = processTextForMarkup(state.text); 
+            optionsContainer.innerHTML = '';
+            
+            state.options.forEach((option) => {
+                const button = document.createElement('button');
+                button.className = 'btn option-btn w-full text-left p-4 bg-tint-5 border border-tint-4 text-primary-dark text-base block transition-colors duration-200 flex items-center';
+                
+                let iconHtml = '';
+                let labelText = option.label;
+
+                if (option.label.toLowerCase() === 'yes') {
+                    iconHtml = '<span class="option-icon">✔</span>'; 
+                    labelText = `<strong>${labelText}</strong>`;
+                } else if (option.label.toLowerCase() === 'no') {
+                    iconHtml = '<span class="option-icon">✘</span>'; 
+                    labelText = `<strong>${labelText}</strong>`;
+                }
+
+                button.innerHTML = iconHtml + labelText;
+                button.onclick = () => nextStep(option.next, option.label);
+                optionsContainer.appendChild(button);
+            });
+
+            previousButton.disabled = navigationHistory.length === 0;
+            updateJourneyVisualizer();
+
+            questionDisplay.classList.remove('hidden');
+            resultDisplay.classList.add('hidden');
+        }
+
+        function nextStep(nextState, selectedOption) {
+            navigationHistory.push({ questionKey: currentState, selectedOption: selectedOption });
+            currentState = nextState;
+            renderState();
+        }
+
+        function previousStep() {
+            if (navigationHistory.length > 0) {
+                navigationHistory.pop();
+                
+                if (navigationHistory.length > 0) {
+                    currentState = navigationHistory[navigationHistory.length - 1].questionKey;
+                } else {
+                    currentState = startState;
+                }
+                
+                renderState();
+            }
+        }
+
+        function displayResult(type) {
+            const definition = contractDefinitions[type];
+
+            if (definition) {
+                resultType.innerHTML = processTextForMarkup(definition.title).charAt(0).toUpperCase() + processTextForMarkup(definition.title).slice(1);
+                resultType.className = `text-2xl md:text-3xl font-bold text-primary-dark`; 
+                
+                resultExplanation.innerHTML = processTextForMarkup(definition.explanation);
+                resultExplanation.classList.add('text-lg', 'text-primary-dark'); 
+                
+                questionDisplay.classList.add('hidden');
+                resultDisplay.classList.remove('hidden');
+            } else {
+                console.error("Invalid contract type selected or result key not found:", type);
+            }
+        }
+
+        function resetTool() {
+            currentState = startState;
+            navigationHistory = [];
+            renderState();
+        }
+
+        // --- Custom Repulsion Icon Logic ---
+
+        const REPULSION_RADIUS = 120; // Radius in pixels where repulsion starts
+        const REPULSION_STRENGTH = 1.5; // How strongly the icon is pushed
+
+        function setupIconInteraction() {
+            if (!contractIcon || !headerBar) return;
+            
+            // 1. Set the magnifying glass cursor over the header area
+            // Increased size/detail on SVG to fix outline/sizing issue
+            const cursorUrl = `url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><text x="0" y="35" font-size="35" fill="%23FCBB69" stroke="%23FCBB69" stroke-width="0.5">🔍︎</text></svg>') 20 20, zoom-in`;
+            headerBar.style.cursor = cursorUrl;
+
+            // 2. Add mouse move listener to the header bar
+            headerBar.addEventListener('mousemove', (e) => {
+                // Get icon's position relative to the viewport
+                const iconRect = contractIcon.getBoundingClientRect();
+                
+                // Calculate the center point of the icon
+                const iconCenterX = iconRect.left + iconRect.width / 2;
+                const iconCenterY = iconRect.top + iconRect.height / 2;
+
+                // Calculate the distance (dx, dy) and overall distance (dist) from cursor to icon center
+                const dx = iconCenterX - e.clientX;
+                const dy = iconCenterY - e.clientY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < REPULSION_RADIUS) {
+                    // Cursor is close, calculate repulsion force
+                    // Normalize the vector (unit vector)
+                    const unitX = dx / dist;
+                    const unitY = dy / dist;
+
+                    // Calculate repulsion magnitude (stronger closer, up to REPULSION_RADIUS * REPULSION_STRENGTH)
+                    const force = (REPULSION_RADIUS - dist) * REPULSION_STRENGTH;
+
+                    // Calculate the new translation (x, y)
+                    const translateX = unitX * force;
+                    const translateY = unitY * force;
+                    
+                    // Apply the repulsion translation
+                    contractIcon.style.transform = `translate(${translateX}px, ${translateY}px)`;
+                } else {
+                    // Cursor is outside the radius, reset position smoothly
+                    if (contractIcon.style.transform !== 'none') {
+                        contractIcon.style.transform = 'none';
+                    }
+                }
+            });
+
+            // 3. Reset icon position when mouse leaves the header area
+            headerBar.addEventListener('mouseleave', () => {
+                contractIcon.style.transform = 'none';
+            });
+        }
+
+        // Initialize the tool's starting state and set up the icon interaction
+        document.addEventListener('DOMContentLoaded', () => {
+            resetTool();
+            setupIconInteraction();
+        });
+    </script>
+
+</body>
+</html>
