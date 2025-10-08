@@ -102,6 +102,27 @@
 </head>
 <body>
 
+    <!-- DISCLAIMER MODAL (Appears on page load) -->
+    <div id="disclaimer-modal" class="fixed inset-0 z-50 bg-primary-dark/90 flex items-center justify-center p-4">
+        <div class="bg-white p-8 max-w-lg w-full square-corner border-4 border-highlight shadow-2xl space-y-6">
+            <div class="text-center">
+                <span class="text-6xl block mb-4">🧠</span>
+                <h3 class="text-xl font-bold text-primary-dark">Warning: Experimental Tool</h3>
+            </div>
+            <p class="text-lg text-center text-primary-dark">
+                This tool is experimental. It might give you the wrong answer, and is no substitute for using your brain.
+            </p>
+            <div class="flex flex-col space-y-3">
+                <button id="understand-button" class="btn p-3 bg-highlight hover:bg-tint-1 text-primary-dark hover:text-white text-base font-bold transition-colors duration-200">
+                    I understand
+                </button>
+                <button id="decline-button" class="btn p-3 bg-tint-5 border border-tint-4 text-primary-dark text-base font-bold transition-colors duration-200 hover:bg-tint-4">
+                    Actually, I'd rather not
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Header Section (Scaled down to max-w-5xl, smaller padding/margin/text) -->
     <header id="header-bar" class="w-full max-w-5xl mx-auto bg-primary-dark p-6 md:p-8 my-8 shadow-2xl square-corner">
         <div class="flex justify-between items-center">
@@ -178,10 +199,15 @@
     <!-- Footer Attribution (Scaled down to max-w-5xl, smaller text/margin, logo h-12) -->
     <footer class="w-full max-w-5xl mx-auto p-4 text-tint-1 mt-4 flex justify-between items-center text-xs">
         <!-- Logo (Left-aligned, size h-12) -->
-        <img src="https://cacv.org.uk/wp-content/uploads/cacv-logo.svg" alt="Citizens Advice Cardiff & Vale Logo" class="h-12">
+        <a href="https://cacv.org.uk" target="_blank" rel="noopener noreferrer">
+            <img src="https://cacv.org.uk/wp-content/uploads/cacv-logo.svg" alt="Citizens Advice Cardiff & Vale Logo" class="h-12">
+        </a>
         
         <!-- Text (Right-aligned) -->
-        <p class="text-right">This tool was created by <a href="mailto:dafydd.young@consumer.advice.org.uk" class="text-primary-dark font-semibold hover:text-tint-1">Dafydd</a> at Citizens Advice Cardiff & Vale. Use at your own risk, and if in doubt check <a href="https://drive.google.com/file/d/0B-OrLWOGSqU9d3FXZkY2X2VFYlE/view?usp=sharing&resourcekey=0-xQCQr4eM3HYHdG9MFIWmIA" target="_blank" class="text-primary-dark font-semibold hover:text-tint-1">figure D1 in your manuals</a>.</p>
+        <p class="text-right">
+            This tool was created by <a href="mailto:dafydd.young@consumer.advice.org.uk" class="text-primary-dark font-semibold hover:text-tint-1">Dafydd</a> at <a href="https://cacv.org.uk" target="_blank" rel="noopener noreferrer" class="text-primary-dark font-semibold hover:text-tint-1">Citizens Advice Cardiff & Vale</a>.<br> 
+            This tool is experimental, so use at your own risk, and if in doubt check <a href="https://drive.google.com/file/d/0B-OrLWOGSqU9d3FXZkY2X2VFYlE/view?usp=sharing&resourcekey=0-xQCQr4eM3HYHdG9MFIWmIA" target="_blank" class="text-primary-dark font-semibold hover:text-tint-1">figure D1 in your manuals</a>.
+        </p>
     </footer>
 
     <script>
@@ -196,12 +222,13 @@
         const contractIcon = document.getElementById('contract-icon'); 
         const headerBar = document.getElementById('header-bar');
         
-        const startState = 'Q1_T_C';
+        // Updated start state to Q1
+        const startState = 'Q1_T_C_Filter';
 
         let currentState = startState;
         let navigationHistory = []; 
 
-        // --- Definitions based on CCR 2013 Summary (Page 9) ---
+        // --- Definitions based on CCR 2013 Summary (Page 9) and CSV addition ---
         const contractDefinitions = {
             'on-premises': {
                 title: 'This is an on-premises contract',
@@ -217,68 +244,80 @@
                 title: 'This is a distance contract',
                 explanation: 'A distance contract is where the parties are not face-to-face, the trader has an organised distance sales scheme, and and there is exclusive use of distance communication (online, phone, mail) up to and including the time the contract is concluded.<br><br>Distance contracts usually have [stautory cancellation rights under the Consumer Contract Regulations, and also have defined requirements for PCI].',
                 color: 'text-primary-dark' 
+            },
+            'excluded': {
+                title: 'This contract is not covered by the CCRs',
+                explanation: 'The Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013 only apply to contracts between a [trader] (T) and a [consumer] (C).',
+                color: 'text-red-700' // Using standard Tailwind red for emphasis
             }
         };
 
-        // --- Flowchart Logic (Figure D1) from Page 7 ---
+        // --- CORRECTED Flowchart Logic based on CSV ---
         const QUIZ_FLOW = {
-            'Q1_T_C': { 
+            'Q1_T_C_Filter': { // New Q1: Is the supplier a T and the buyer a C?
+                text: 'Is the supplier a [trader] and the buyer a [consumer]?',
+                options: [
+                    { label: 'Yes', next: 'Q2_F2F' },
+                    { label: 'No', next: 'EXCLUDED CONTRACT' }
+                ]
+            },
+            'Q2_F2F': { // New Q2 (was old Q1): Were they face-to-face at any time?
                 text: 'Were the trader and consumer [face-to-face] at any time?',
                 options: [
-                    { label: 'Yes', next: 'Q2_F2F_Location' },
-                    { label: 'No', next: 'Q3_Distance_Scheme' }
+                    { label: 'Yes', next: 'Q3_Usual_Business_Premises' },
+                    { label: 'No', next: 'Q9_Distance_Scheme' }
                 ]
             },
-            'Q2_F2F_Location': {
+            'Q3_Usual_Business_Premises': { // New Q3 (was old Q2): Usual place of business?
                 text: 'Did this face-to-face interaction occur at a location that is a [usual place of business] for the trader?',
                 options: [
-                    { label: 'Yes', next: 'Q2a_Concluded_Together' },
-                    { label: 'No', next: 'Q2b_Excursion' }
+                    { label: 'Yes', next: 'Q5_Excursion' }, // Go to Q5
+                    { label: 'No', next: 'Q4_Concluded_Together_F2F' } // Go to Q4
                 ]
             },
-            'Q2a_Concluded_Together': {
+            'Q4_Concluded_Together_F2F': { // New Q4 (was old Q2a, but with corrected logic)
                 text: 'Was the contract [concluded while they were still together]?',
                 options: [
-                    { label: 'Yes', next: 'ON-PREMISES CONTRACT' }, 
-                    { label: 'No', next: 'ON-PREMISES CONTRACT' } 
+                    { label: 'Yes', next: 'OFF-PREMISES CONTRACT' }, // Corrected: Off-premises
+                    { label: 'No', next: 'Q6_Consumer_Offer' } // Corrected: Q6
                 ]
             },
-            'Q2b_Excursion': {
+            'Q5_Excursion': { // New Q5 (was old Q2b, but with corrected logic)
                 text: 'Was the interaction [an excursion organised by the trader] to promote or sell?',
                 options: [
                     { label: 'Yes', next: 'OFF-PREMISES CONTRACT' }, 
-                    { label: 'No', next: 'Q2c_Consumer_Offer' }
+                    { label: 'No', next: 'ON-PREMISES CONTRACT' } // Corrected: On-premises
                 ]
             },
-            'Q2c_Consumer_Offer': {
+            'Q6_Consumer_Offer': { // New Q6 (was old Q2c, but with corrected logic)
                 text: 'Did the consumer [make an offer while they were still together] (e.g., signing an order form)?',
                 options: [
-                    { label: 'Yes', next: 'Q2d_Individually_Addressed' },
-                    { label: 'No', next: 'ON-PREMISES CONTRACT' }
+                    { label: 'Yes', next: 'OFF-PREMISES CONTRACT' }, // Corrected: Off-premises
+                    { label: 'No', next: 'Q7_Individually_Addressed' } // Corrected: Q7
                 ]
             },
-            'Q2d_Individually_Addressed': {
+            'Q7_Individually_Addressed': { // New Q7 (was old Q2d)
                 text: 'Was the consumer [personally and individually addressed] by the trader?',
                 options: [
-                    { label: 'Yes', next: 'Q2e_Concluded_Immediately' },
+                    { label: 'Yes', next: 'Q8_Concluded_Immediately' },
                     { label: 'No', next: 'ON-PREMISES CONTRACT' }
                 ]
             },
-            'Q2e_Concluded_Immediately': {
+            'Q8_Concluded_Immediately': { // New Q8 (was old Q2e)
                 text: 'Was [conclusion of the contract immediately afterwards], either on business premises or by distance means?',
                 options: [
                     { label: 'Yes', next: 'OFF-PREMISES CONTRACT' }, 
                     { label: 'No', next: 'ON-PREMISES CONTRACT' }
                 ]
             },
-            'Q3_Distance_Scheme': {
+            'Q9_Distance_Scheme': { // New Q9 (was old Q3)
                 text: 'Does the trader have an [organised distance selling scheme] (e.g., dedicated website, catalogue system, or call center)?',
                 options: [
-                    { label: 'Yes', next: 'Q4_Exclusive_Distance' },
+                    { label: 'Yes', next: 'Q10_Exclusive_Distance' },
                     { label: 'No', next: 'ON-PREMISES CONTRACT' } 
                 ]
             },
-            'Q4_Exclusive_Distance': {
+            'Q10_Exclusive_Distance': { // New Q10 (was old Q4)
                 text: 'Was there [exclusive use of one or more means of distance communication] (phone, internet, mail) up to and including the contract conclusion?',
                 options: [
                     { label: 'Yes', next: 'DISTANCE CONTRACT' }, 
@@ -288,6 +327,7 @@
             'ON-PREMISES CONTRACT': { result: 'on-premises' },
             'OFF-PREMISES CONTRACT': { result: 'off-premises' },
             'DISTANCE CONTRACT': { result: 'distance' },
+            'EXCLUDED CONTRACT': { result: 'excluded' }, // New result from Q1 'No'
         };
 
         function processTextForMarkup(text) {
@@ -410,9 +450,11 @@
 
             if (definition) {
                 resultType.innerHTML = processTextForMarkup(definition.title).charAt(0).toUpperCase() + processTextForMarkup(definition.title).slice(1);
-                resultType.className = `text-2xl md:text-3xl font-bold text-primary-dark`; 
+                // Use the color defined in the contractDefinitions for the title
+                resultType.className = `text-2xl md:text-3xl font-bold ${definition.color}`; 
                 
                 resultExplanation.innerHTML = processTextForMarkup(definition.explanation);
+                // Keep explanation text color consistent (text-primary-dark)
                 resultExplanation.classList.add('text-lg', 'text-primary-dark'); 
                 
                 questionDisplay.classList.add('hidden');
@@ -484,10 +526,30 @@
             });
         }
 
+        // --- Disclaimer Modal Logic ---
+        function setupDisclaimerModal() {
+            const modal = document.getElementById('disclaimer-modal');
+            const understandBtn = document.getElementById('understand-button');
+            const declineBtn = document.getElementById('decline-button');
+            
+            // Handle "I understand"
+            understandBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+
+            // Handle "I'd rather not" - redirects the user
+            declineBtn.addEventListener('click', () => {
+                window.location.href = 'https://docs.google.com/spreadsheets/d/1Ghs2JKcALm6wzgV0UvMi1zRY38pYIdVcM8Qb6sPUGtU/edit?usp=sharing';
+            });
+        }
+        // --- End Disclaimer Modal Logic ---
+
+
         // Initialize the tool's starting state and set up the icon interaction
         document.addEventListener('DOMContentLoaded', () => {
             resetTool();
             setupIconInteraction();
+            setupDisclaimerModal(); 
         });
     </script>
 
